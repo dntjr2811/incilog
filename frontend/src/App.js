@@ -174,7 +174,9 @@ function ConnectedView({ logs, similarMap, onUpdate }) {
 
 function SimilarGroup({ similar, criteria, sourceLog, onLayoutChange }) {
   const [expanded, setExpanded] = useState(false);
-  const display = expanded ? similar : similar.slice(0, 1);
+  // 類似度降順で表示（バックエンド側でソート済みだが念のためフロントでも保証）
+  const sorted = [...similar].sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0));
+  const display = expanded ? sorted : sorted.slice(0, 1);
   const toggle = () => { setExpanded(!expanded); setTimeout(onLayoutChange, 50); };
   return (
     <div className="similar-group">
@@ -182,12 +184,6 @@ function SimilarGroup({ similar, criteria, sourceLog, onLayoutChange }) {
         <span className="similar-label">類似 ({similar.length})</span>
         <span className="similar-source">{sourceLog.event_date} {sourceLog.hostname}</span>
         {similar.length > 1 && <button className="btn btn-small btn-toggle" onClick={toggle}>{expanded ? '▲ 折りたたむ' : `▼ 全${similar.length}件`}</button>}
-      </div>
-      <div className="match-tags">
-        {criteria.message_code && <span className="match-tag">{criteria.message_code}</span>}
-        {criteria.jobnet_path && <span className="match-tag">{criteria.jobnet_path}</span>}
-        {criteria.source_device && <span className="match-tag">{criteria.source_device}</span>}
-        {criteria.event_keyword && <span className="match-tag">{criteria.event_keyword}</span>}
       </div>
       {display.map(sl => <SimilarCard key={sl.id} log={sl} />)}
     </div>
@@ -272,7 +268,9 @@ function LogDetail({ log, onUpdate, onLayoutChange }) {
 
 function SimilarCard({ log }) {
   const [open,setOpen]=useState(false);
-  return (<div className={`similar-card ${open?'open':''}`} onClick={()=>setOpen(!open)}><div className="similar-top"><span className="similar-date">{log.event_date}</span><span className="similar-host">{log.hostname}</span>{log.org_name&&<span className="tag org-tag">{log.org_name}</span>}</div>{!open&&log.response&&<div className="similar-preview">💡 {log.response.substring(0,80)}</div>}{open&&<div className="similar-expanded"><div className="similar-msg">{log.message&&log.message.substring(0,200)}</div><div className="similar-resp"><strong>対応:</strong><pre>{log.response}</pre></div><div className="similar-who">担当:{log.assignee||'-'} / 確認:{log.reviewer||'-'}</div></div>}</div>);
+  // 類似度をパーセント表示（vector検索結果は0〜1の値、exactなど無い場合はnull）
+  const simPct = (log.similarity != null) ? Math.round(log.similarity * 100) : null;
+  return (<div className={`similar-card ${open?'open':''}`} onClick={()=>setOpen(!open)}><div className="similar-top">{simPct!=null&&<span className="similar-score" title={`類似度 ${log.similarity}`}>{simPct}%</span>}<span className="similar-date">{log.event_date}</span><span className="similar-host">{log.hostname}</span>{log.org_name&&<span className="tag org-tag">{log.org_name}</span>}</div>{!open&&log.response&&<div className="similar-preview">💡 {log.response.substring(0,80)}</div>}{open&&<div className="similar-expanded"><div className="similar-msg">{log.message&&log.message.substring(0,200)}</div><div className="similar-resp"><strong>対応:</strong><pre>{log.response}</pre></div><div className="similar-who">担当:{log.assignee||'-'} / 確認:{log.reviewer||'-'}</div></div>}</div>);
 }
 
 function AddLogForm({ hosts, teams, onClose, onSaved }) {

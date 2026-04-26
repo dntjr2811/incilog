@@ -4,3 +4,8 @@ sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
 pydantic==2.10.3
 openpyxl==3.1.5
+# ベクトル検索関連（ローカルONNXモデル直接ロード）
+onnxruntime==1.20.1
+tokenizers==0.21.0
+pgvector==0.3.6
+numpy==1.26.4

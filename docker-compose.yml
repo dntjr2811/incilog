@@ -35,6 +35,12 @@ services:
     environment:
       - DATABASE_URL=postgresql://incilog:incilog_pass@db:5432/incilog
       - TZ=Asia/Tokyo
+      # 埋め込みモデル設定
+      - EMBEDDING_MODEL=intfloat/multilingual-e5-small
+      - EMBEDDING_CACHE_DIR=/app/models
+    volumes:
+      # 埋め込みモデルをローカルフォルダから読み込み（外部ダウンロード回避）
+      - ./models:/app/models:ro
     depends_on:
       db:
         condition: service_healthy
@@ -45,11 +51,13 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      # モデル初回ダウンロード時間を考慮（e5-large ~600MB、ネットワーク次第で1~3分）
+      start_period: 300s
     restart: unless-stopped
 
   db:
-    image: postgres:16-alpine
+    # pgvector同梱イメージへ変更（PostgreSQL 16 + pgvector extension）
+    image: pgvector/pgvector:pg16
     container_name: incilog-db
     ports:
       - "5433:5432"
